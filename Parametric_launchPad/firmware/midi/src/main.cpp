@@ -25,8 +25,9 @@
 #define PIN 6
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, PIN, NEO_GRB + NEO_KHZ800);
 
-int32_t magenta = strip.Color(20, 40, 20);
-int32_t magenta_fuerte  = strip.Color(255, 0, 255);
+int32_t seafoam = strip.Color(20, 40, 20);
+int32_t magenta_strong  = strip.Color(180, 0, 180);
+
 /* How many shift register chips are daisy-chained.
 */
 #define NUMBER_OF_SHIFT_CHIPS   2
@@ -41,7 +42,7 @@ int32_t magenta_fuerte  = strip.Color(255, 0, 255);
 
 /* Optional delay between shift register reads.
 */
-#define POLL_DELAY_MSEC   1
+#define POLL_DELAY_MSEC   10
 
 /* You will need to change the "int" to "long" If the
  * NUMBER_OF_SHIFT_CHIPS is higher than 2.
@@ -130,29 +131,29 @@ void send_midi_value()
     for(int i = 0; i < DATA_WIDTH; i++)
     {
 
-        if((pinValues >> i) != (oldPinValues >> i)){
-          Serial.print("  Pin-");
-          Serial.print(i);
-          Serial.print(": ");
+        if((pinValues >> i) ^ (oldPinValues >> i)){
+          //Serial.print("  Pin-");
+          //Serial.print(i);
+          //Serial.print(": ");
 
-          if((pinValues >> i) & 1){
-            Serial.print("HIGH");
-            //midi_note_on(3, 12*5 + i, 127);
-            strip.setPixelColor(i,magenta_fuerte);
+          if((pinValues >> i) & 1 & (~(oldPinValues >> i))){
+            //Serial.print("HIGH");
+            midi_note_on(3, 12*5 + i, 127);
+            strip.setPixelColor(i,magenta_strong);
           }
 
-          else{
-            Serial.print("LOW");
-            strip.setPixelColor(i,magenta);
-            //midi_note_off(3, 12*5 + i, 127);
+          else if ((~(pinValues >> i)) & 1){
+            //Serial.print("LOW");
+            strip.setPixelColor(i,seafoam);
+            midi_note_off(3, 12*5 + i, 127);
           }
 
           strip.show();
-          Serial.print("\r\n");
+          //Serial.print("\r\n");
       }
     }
 
-    Serial.print("\r\n");
+    //Serial.print("\r\n");
 }
 
 void setup()
@@ -162,7 +163,7 @@ void setup()
     strip.begin();
 
     for (uint16_t i = 0; i < 16; i++) {
-      strip.setPixelColor(i,magenta);
+      strip.setPixelColor(i,seafoam);
     }
     strip.show(); // Initialize all pixels to 'off'
 
@@ -179,7 +180,7 @@ void setup()
     /* Read in and display the pin states at startup.
     */
     pinValues = read_shift_regs();
-    display_pin_values();
+    //display_pin_values();
     oldPinValues = pinValues;
 }
 
