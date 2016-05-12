@@ -1,5 +1,7 @@
 #include "arduino.h"
 #include <ardumidi.h>
+#include <Adafruit_NeoPixel.h>
+
 /*
  * SN74HC165N_shift_reg
  *
@@ -20,6 +22,11 @@
  *
 */
 
+#define PIN 6
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, PIN, NEO_GRB + NEO_KHZ800);
+
+int32_t magenta = strip.Color(20, 40, 20);
+int32_t magenta_fuerte  = strip.Color(255, 0, 255);
 /* How many shift register chips are daisy-chained.
 */
 #define NUMBER_OF_SHIFT_CHIPS   2
@@ -48,10 +55,8 @@ int clockPin        = 12; // Connects to the Clock pin the 165
 
 BYTES_VAL_T pinValues;
 BYTES_VAL_T oldPinValues;
-//int button_map[16] = {3,5,10,13,12,11,4,3,15,8,7,0,14,9,6,1};
+
 int button_map[16] = {2,5,10,13,12,11,4,3,15,8,7,0,14,9,6,1};
-//int button_map[15] = {13,10,5,2,3,4,11,12,7,8,15,1,6,9,14};
-//int button_map[16] =   {11,15,0,7,6,1,14,10,9,13,2,5,4,3,12,8};
 
 /* This function is essentially a "shift-in" routine reading the
  * serial Data from the shift register chips and representing
@@ -79,8 +84,6 @@ BYTES_VAL_T read_shift_regs()
 
         /* Set the corresponding bit in bytesVal.
         */
-        //bytesVal |= (bitVal << button_map[i]);
-        //bytesVal |= (bitVal << ((DATA_WIDTH-1) - button_map[i] ));
         //bytesVal |= (bitVal << ((DATA_WIDTH-1) - i ));
         bytesVal |= (bitVal << button_map[((DATA_WIDTH-1) - i)]);
 
@@ -120,10 +123,48 @@ void display_pin_values()
     Serial.print("\r\n");
 }
 
+void send_midi_value()
+{
+    //Serial.print("Pin States:\r\n");
+
+    for(int i = 0; i < DATA_WIDTH; i++)
+    {
+
+        if((pinValues >> i) != (oldPinValues >> i)){
+          Serial.print("  Pin-");
+          Serial.print(i);
+          Serial.print(": ");
+
+          if((pinValues >> i) & 1){
+            Serial.print("HIGH");
+            //midi_note_on(3, 12*5 + i, 127);
+            strip.setPixelColor(i,magenta_fuerte);
+          }
+
+          else{
+            Serial.print("LOW");
+            strip.setPixelColor(i,magenta);
+            //midi_note_off(3, 12*5 + i, 127);
+          }
+
+          strip.show();
+          Serial.print("\r\n");
+      }
+    }
+
+    Serial.print("\r\n");
+}
 
 void setup()
 {
     Serial.begin(115200);
+
+    strip.begin();
+
+    for (uint16_t i = 0; i < 16; i++) {
+      strip.setPixelColor(i,magenta);
+    }
+    strip.show(); // Initialize all pixels to 'off'
 
     /* Initialize our digital pins...
     */
@@ -152,8 +193,9 @@ void loop()
     */
     if(pinValues != oldPinValues)
     {
-        Serial.print("*Pin value change detected*\r\n");
-        display_pin_values();
+        //Serial.print("*Pin value change detected*\r\n");
+        //display_pin_values();
+        send_midi_value();
         oldPinValues = pinValues;
     }
 
